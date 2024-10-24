@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css"
+            integrity="sha384-VvSC4PGxeMkOaAmyuDGZECjY2dkqdO/IdBYBUK+BCYNc3WIvRxHLUzQ5OSgUaMA7"
+            crossorigin="anonymous"
+        />
+    </head>
+    <body>
+        <h2 style="font-family: Arial, Helvetica, sans-serif">
+            A simple text editor using
+            <a href="https://quilljs.com/">quilljs</a>
+        </h2>
+        <div id="editor">{{editorContent}}</div>
+        <!-- Quill -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"
+            integrity="sha384-hcxmSutM10NL6iGBAA0LStIhy+kWJxfrhqWVMRuABZH5Vqztexq2nBz/Xnfllly9"
+            crossorigin="anonymous"
+        ></script>
+        <!-- Do the client-side JS things -->
+        <script>
+            const quill = new Quill("#editor", {
+                theme: "snow",
+            });
+
+            function debounce(func, wait) {
+                let timeout;
+                return function (...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
+
+            function sendContentToServer() {
+                const editorContent = quill.root.innerHTML;
+                const url = window.location.href;
+                fetch(url, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: editorContent,
+                }).catch((error) => {
+                    console.error("Error sending editor changes:", error);
+                });
+            }
+
+            // only send content to server when user stops typing for 0.5s
+            const debouncedSendContent = debounce(sendContentToServer, 500);
+
+            quill.on("text-change", (delta, oldDelta, source) => {
+                if (source === "user") {
+                    debouncedSendContent();
+                }
+            });
+        </script>
+    </body>
+</html>
+
